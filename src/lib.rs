@@ -1,13 +1,16 @@
 //! A speedy, non-cryptographic hashing algorithm used by `rustc`.
 //!
+//! Fork of [rustc-hash](https://github.com/rust-lang/rustc-hash).
+//! This is for personal usage only, please use `rustc-hash`.
+//!
 //! # Example
 //!
 //! ```rust
 //! # #[cfg(feature = "std")]
 //! # fn main() {
-//! use rustc_hash::FxHashMap;
+//! use fx_hash::{FxHashMap, FxHashMapExt};
 //!
-//! let mut map: FxHashMap<u32, u32> = FxHashMap::default();
+//! let mut map: FxHashMap<u32, u32> = FxHashMap::new();
 //! map.insert(22, 44);
 //! # }
 //! # #[cfg(not(feature = "std"))]
@@ -19,12 +22,6 @@
 
 #[cfg(feature = "std")]
 extern crate std;
-
-#[cfg(feature = "rand")]
-extern crate rand;
-
-#[cfg(feature = "rand")]
-mod random_state;
 
 mod seeded_state;
 
@@ -41,12 +38,49 @@ pub type FxHashMap<K, V> = HashMap<K, V, FxBuildHasher>;
 #[cfg(feature = "std")]
 pub type FxHashSet<V> = HashSet<V, FxBuildHasher>;
 
-#[cfg(feature = "rand")]
-pub use random_state::{FxHashMapRand, FxHashSetRand, FxRandomState};
-
 pub use seeded_state::FxSeededState;
 #[cfg(feature = "std")]
 pub use seeded_state::{FxHashMapSeed, FxHashSetSeed};
+
+/// A trait to add a `new` constructor for `FxHashMap`.
+///
+/// # Example
+/// ```
+/// use fx_hash::{FxHashMap, FxHashMapExt};
+///
+/// // Create a new FxHashMap
+/// let map: FxHashMap<String, i32> = FxHashMap::new();
+/// ```
+pub trait FxHashMapExt<K, V> {
+    /// Creates a new instance with the default `FxBuildHasher`.
+    fn new() -> Self;
+}
+
+impl<K, V> FxHashMapExt<K, V> for FxHashMap<K, V> {
+    fn new() -> Self {
+        HashMap::with_hasher(FxBuildHasher)
+    }
+}
+
+/// A trait to add a `new` constructor for `FxHashSet`.
+///
+/// # Example
+/// ```
+/// use fx_hash::{FxHashSet, FxHashSetExt};
+///
+/// // Create a new FxHashSet
+/// let set: FxHashSet<String> = FxHashSet::new();
+/// ```
+pub trait FxHashSetExt<V> {
+    /// Creates a new instance with the default `FxBuildHasher`.
+    fn new() -> Self;
+}
+
+impl<V> FxHashSetExt<V> for FxHashSet<V> {
+    fn new() -> Self {
+        HashSet::with_hasher(FxBuildHasher)
+    }
+}
 
 /// A speedy hash algorithm for use within rustc. The hashmap in liballoc
 /// by default uses SipHash which isn't quite as speedy as we want. In the
@@ -84,19 +118,17 @@ impl FxHasher {
     pub const fn default() -> FxHasher {
         FxHasher { hash: 0 }
     }
+
+    #[inline]
+    fn add_to_hash(&mut self, i: usize) {
+        self.hash = self.hash.wrapping_add(i).wrapping_mul(K);
+    }
 }
 
 impl Default for FxHasher {
     #[inline]
     fn default() -> FxHasher {
         Self::default()
-    }
-}
-
-impl FxHasher {
-    #[inline]
-    fn add_to_hash(&mut self, i: usize) {
-        self.hash = self.hash.wrapping_add(i).wrapping_mul(K);
     }
 }
 
@@ -300,7 +332,7 @@ fn hash_bytes(bytes: &[u8]) -> u64 {
 ///
 /// ```
 /// use std::hash::BuildHasher;
-/// use rustc_hash::FxBuildHasher;
+/// use fx_hash::FxBuildHasher;
 /// assert_ne!(FxBuildHasher.hash_one(1), FxBuildHasher.hash_one(2));
 /// ```
 #[derive(Copy, Clone, Default)]
@@ -428,18 +460,16 @@ mod tests {
             hash(HashBytes(&[1])) == if B32 { 2943445104 } else { 4127763515449136980 },
             hash(HashBytes(&[2])) == if B32 { 1055423297 } else { 11322700005987241762 },
             hash(HashBytes(b"uwu")) == if B32 { 2699662140 } else { 2129615206728903013 },
-            hash(HashBytes(b"These are some bytes for testing rustc_hash.")) == if B32 { 2303640537 } else { 5513083560975408889 },
+            hash(HashBytes(b"These are some bytes for testing fx_hash.")) == if B32 { 2303640537 } else { 5180056157752790530 },
         }
     }
 
     #[test]
     fn with_seed_actually_different() {
-        let seeds = [
-            [1, 2],
-            [42, 17],
-            [124436707, 99237],
-            [usize::MIN, usize::MAX],
-        ];
+        let seeds = [[1, 2], [42, 17], [124436707, 99237], [
+            usize::MIN,
+            usize::MAX,
+        ]];
 
         for [a_seed, b_seed] in seeds {
             let a = || FxHasher::with_seed(a_seed);

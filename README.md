@@ -1,7 +1,10 @@
-# rustc-hash
+# fx-hash
 
-[![crates.io](https://img.shields.io/crates/v/rustc-hash.svg)](https://crates.io/crates/rustc-hash)
-[![Documentation](https://docs.rs/rustc-hash/badge.svg)](https://docs.rs/rustc-hash)
+[![crates.io](https://img.shields.io/crates/v/fx-hash.svg)](https://crates.io/crates/fx-hash)
+[![Documentation](https://docs.rs/fx-hash/badge.svg)](https://docs.rs/fx-hash)
+
+Fork of [rustc-hash](https://github.com/rust-lang/rustc-hash).
+This is for personal usage only, please use `rustc-hash`.
 
 A speedy, non-cryptographic hashing algorithm used by `rustc`.
 The [hash map in `std`](https://doc.rust-lang.org/std/collections/struct.HashMap.html) uses SipHash by default, which provides resistance against DOS attacks.
@@ -26,10 +29,13 @@ This crate provides `FxHashMap` and `FxHashSet` as collections.
 They are simply type aliases for their `std::collection` counterparts using the Fx hasher.
 
 ```rust
-use rustc_hash::FxHashMap;
+use fx_hash::{FxHashMap, FxHashMapExt, FxHashSet, FxHashSetExt};
 
-let mut map: FxHashMap<u32, u32> = FxHashMap::default();
+let mut map: FxHashMap<u32, u32> = FxHashMap::new();
 map.insert(22, 44);
+
+let mut set: FxHashSet<u32> = FxHashSet::new();
+set.insert(27);
 ```
 
 ### `no_std`
@@ -38,5 +44,5 @@ The `std` feature is on by default to enable collections.
 It can be turned off in `Cargo.toml` like so:
 
 ```toml
-rustc-hash = { version = "2.1", default-features = false }
+rustc-hash = { version = "0.1.0", default-features = false }
 ```

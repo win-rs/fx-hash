@@ -12,7 +12,7 @@ pub type FxHashSetSeed<V> = std::collections::HashSet<V, FxSeededState>;
 ///
 /// ```
 /// # use std::collections::HashMap;
-/// use rustc_hash::FxSeededState;
+/// use fx_hash::FxSeededState;
 ///
 /// let mut map = HashMap::with_hasher(FxSeededState::with_seed(12));
 /// map.insert(15, 610);
